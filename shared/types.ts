@@ -1,11 +1,13 @@
 export type ComplaintStatus = "open" | "in_progress" | "resolved";
 export type ComplaintPriority = "low" | "medium" | "high";
+export type ComplaintCategory = "billing" | "delivery" | "product";
 
 export interface Complaint {
   id: string;
   customer: string;
   subject: string;
   priority: ComplaintPriority;
+  category: ComplaintCategory;
   status: ComplaintStatus;
   createdAt: string; // ISO 8601
 }
@@ -17,6 +19,8 @@ export interface CreateComplaintBody {
   customer: string;
   subject: string;
   priority: ComplaintPriority;
+  /** Optional; defaults to "product" when omitted. */
+  category?: ComplaintCategory;
 }
 
 /** PATCH /api/complaints/:id/status -> 200 Complaint; 400/404 ApiError */
@@ -28,6 +32,7 @@ export interface UpdateStatusBody {
 export interface ListComplaintsQuery {
   status?: ComplaintStatus;
   priority?: ComplaintPriority;
+  category?: ComplaintCategory;
   q?: string;
 }
 

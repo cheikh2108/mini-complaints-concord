@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import type {
   Complaint,
+  ComplaintCategory,
   ComplaintPriority,
   ComplaintStats,
   ComplaintStatus,
@@ -17,8 +18,14 @@ const PRIORITY_LABEL: Record<ComplaintPriority, string> = {
   medium: "Moyenne",
   high: "Haute",
 };
+const CATEGORY_LABEL: Record<ComplaintCategory, string> = {
+  billing: "Facturation",
+  delivery: "Livraison",
+  product: "Produit",
+};
 const STATUSES = Object.keys(STATUS_LABEL) as ComplaintStatus[];
 const PRIORITIES = Object.keys(PRIORITY_LABEL) as ComplaintPriority[];
+const CATEGORIES = Object.keys(CATEGORY_LABEL) as ComplaintCategory[];
 
 const EMPTY_STATS: ComplaintStats = { open: 0, in_progress: 0, resolved: 0, total: 0 };
 
@@ -33,11 +40,13 @@ export default function App() {
 
   const [fStatus, setFStatus] = useState<ComplaintStatus | "">("");
   const [fPriority, setFPriority] = useState<ComplaintPriority | "">("");
+  const [fCategory, setFCategory] = useState<ComplaintCategory | "">("");
   const [search, setSearch] = useState("");
 
   const [customer, setCustomer] = useState("");
   const [subject, setSubject] = useState("");
   const [priority, setPriority] = useState<ComplaintPriority>("medium");
+  const [category, setCategory] = useState<ComplaintCategory>("product");
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,6 +56,7 @@ export default function App() {
         listComplaints({
           status: fStatus || undefined,
           priority: fPriority || undefined,
+          category: fCategory || undefined,
           q: search.trim() || undefined,
         }),
         getStats(),
@@ -59,7 +69,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [fStatus, fPriority, search]);
+  }, [fStatus, fPriority, fCategory, search]);
 
   useEffect(() => {
     const t = setTimeout(refresh, 200);
@@ -75,10 +85,11 @@ export default function App() {
     if (!customer.trim() || !subject.trim()) return;
     setSubmitting(true);
     try {
-      await createComplaint({ customer, subject, priority });
+      await createComplaint({ customer, subject, priority, category });
       setCustomer("");
       setSubject("");
       setPriority("medium");
+      setCategory("product");
       setTouched(false);
       await refresh();
     } catch (err) {
@@ -165,6 +176,16 @@ export default function App() {
               ))}
             </select>
           </label>
+          <label>
+            Catégorie
+            <select value={category} onChange={(e) => setCategory(e.target.value as ComplaintCategory)}>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_LABEL[cat]}
+                </option>
+              ))}
+            </select>
+          </label>
           <button className="btn" disabled={submitting}>
             {submitting ? "Envoi…" : "Créer la réclamation"}
           </button>
@@ -198,6 +219,18 @@ export default function App() {
                 </option>
               ))}
             </select>
+            <select
+              value={fCategory}
+              onChange={(e) => setFCategory(e.target.value as ComplaintCategory | "")}
+              aria-label="Filtrer par catégorie"
+            >
+              <option value="">Toutes catégories</option>
+              {CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_LABEL[cat]}
+                </option>
+              ))}
+            </select>
           </div>
 
           {loading ? (
@@ -217,6 +250,7 @@ export default function App() {
                   <tr>
                     <th>Client</th>
                     <th>Sujet</th>
+                    <th>Catégorie</th>
                     <th>Priorité</th>
                     <th>Statut</th>
                     <th>Créée</th>
@@ -227,6 +261,9 @@ export default function App() {
                     <tr key={c.id}>
                       <td className="strong">{c.customer}</td>
                       <td className="subject">{c.subject}</td>
+                      <td>
+                        <span className={`badge c-${c.category}`}>{CATEGORY_LABEL[c.category]}</span>
+                      </td>
                       <td>
                         <span className={`badge p-${c.priority}`}>{PRIORITY_LABEL[c.priority]}</span>
                       </td>

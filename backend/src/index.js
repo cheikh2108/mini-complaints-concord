@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 const STATUSES = ["open", "in_progress", "resolved"];
 const PRIORITIES = ["low", "medium", "high"];
+const CATEGORIES = ["billing", "delivery", "product"];
 
 const app = express();
 app.use(cors());
@@ -16,12 +17,14 @@ const bad = (res, message) => res.status(400).json({ error: message });
 
 // GET /api/complaints?status=&priority=&q=
 app.get("/api/complaints", (req, res) => {
-  const { status, priority, q } = req.query;
+  const { status, priority, category, q } = req.query;
   if (status && !STATUSES.includes(status)) return bad(res, "invalid status");
   if (priority && !PRIORITIES.includes(priority)) return bad(res, "invalid priority");
+  if (category && !CATEGORIES.includes(category)) return bad(res, "invalid category");
   let items = complaints;
   if (status) items = items.filter((c) => c.status === status);
   if (priority) items = items.filter((c) => c.priority === priority);
+  if (category) items = items.filter((c) => c.category === category);
   if (q) {
     const needle = String(q).toLowerCase();
     items = items.filter(
@@ -40,15 +43,17 @@ app.get("/api/complaints/stats", (_req, res) => {
 
 // POST /api/complaints { customer, subject, priority }
 app.post("/api/complaints", (req, res) => {
-  const { customer, subject, priority } = req.body ?? {};
+  const { customer, subject, priority, category = "product" } = req.body ?? {};
   if (typeof customer !== "string" || !customer.trim()) return bad(res, "customer is required");
   if (typeof subject !== "string" || !subject.trim()) return bad(res, "subject is required");
   if (!PRIORITIES.includes(priority)) return bad(res, "invalid priority");
+  if (!CATEGORIES.includes(category)) return bad(res, "invalid category");
   const complaint = {
     id: randomUUID(),
     customer: customer.trim(),
     subject: subject.trim(),
     priority,
+    category,
     status: "open",
     createdAt: new Date().toISOString(),
   };

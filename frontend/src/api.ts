@@ -26,6 +26,7 @@ export const listComplaints = (q: ListComplaintsQuery) => {
   const params = new URLSearchParams();
   if (q.status) params.set("status", q.status);
   if (q.priority) params.set("priority", q.priority);
+  if (q.category) params.set("category", q.category);
   if (q.q) params.set("q", q.q);
   return request<Complaint[]>(`/api/complaints?${params}`);
 };
