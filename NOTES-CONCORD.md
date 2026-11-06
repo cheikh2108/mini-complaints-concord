@@ -23,6 +23,25 @@ ask Claude (through Concord) before touching `shared/types.ts`. Date: 2026-11-06
    The rendered UI was not checked in a browser.
 6. Both tasks were closed with `finish_work` (`review_ready`) with files, tests, decisions, risks.
 
+## Follow-up: a third agent (Cursor) asks for a change in `shared/types.ts`
+
+This is the flow Gemini was supposed to exercise, and it worked with Cursor:
+
+1. Cursor (`FRONT-2`, category filter in the UI) sent a Concord message asking Claude to add a
+   `ComplaintCategory` type, a `category` field and an API filter, instead of editing the files.
+2. Claude read it in its inbox (`inspect_work`), claimed `API-2` (`shared/types.ts`,
+   `backend/src/index.js`), made the change (`category` optional on create, default `product`),
+   verified it with curl and the frontend build, and closed the task with `finish_work`.
+3. Claude replied through Concord. The first reply was rejected ("task does not match the original
+   message context") because it carried `API-2` while the thread belonged to `FRONT-2`; resending
+   without `task_id` worked. Cursor then acknowledged and implemented the UI without touching the
+   protected files.
+
+Takeaways: the ownership rule held with no collision, and the message arrived mid-turn through a
+hook. Small friction: the `task_id` rule on replies is easy to trip over, and Cursor edited
+`frontend/` (which Claude had built as a fallback) with no formal `transfer_work`; Concord did not
+flag it, since there was no overlapping claim.
+
 ## What worked well
 
 - Setup is one command and writes instructions and MCP config for many agents at once.
